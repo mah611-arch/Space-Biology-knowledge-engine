@@ -1,8 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from hf_client import summarize, get_embedding
-from neo4j_client import upsert_pub
-from db import supabase
+from backend.hf_client import summarize, get_embedding
+from backend.neo4j_client import upsert_pub
+from backend.db import supabase
 from neo4j import GraphDatabase
 from dotenv import load_dotenv
 from typing import List, Optional, Dict

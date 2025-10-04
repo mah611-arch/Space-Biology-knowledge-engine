@@ -1,0 +1,24 @@
+# Web framework
+fastapi==0.111.1
+uvicorn[standard]==0.23.2
+
+# Data validation
+pydantic==2.7.1
+
+# Neo4j driver
+neo4j>=5.11.0
+
+# Supabase / PostgreSQL
+supabase==1.0.1
+postgrest>=0.10.6,<0.11.0
+httpx>=0.23.0,<0.24.0
+
+
+# Environment variables
+python-dotenv==1.0.0
+
+# HTTP requests
+requests==2.32.3
+
+# Typing helpers
+typing-extensions>=4.8.0
