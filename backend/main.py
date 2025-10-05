@@ -1,21 +1,30 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from backend.hf_client import summarize, get_embedding
-from backend.neo4j_client import upsert_pub
-from backend.db import supabase
+from hf_client import summarize, get_embedding
+from neo4j_client import upsert_pub
+from db import supabase
 from neo4j import GraphDatabase
 from dotenv import load_dotenv
 from typing import List, Optional, Dict
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 import os
 
+# -----------------------------
+# Load environment variables
+# -----------------------------
 load_dotenv()
+
+NEO4J_URI = os.getenv("NEO4J_URI")
+NEO4J_USER = os.getenv("NEO4J_USER")
+NEO4J_PASS = os.getenv("NEO4J_PASS")
+
+if not all([NEO4J_URI, NEO4J_USER, NEO4J_PASS]):
+    raise EnvironmentError("Neo4j credentials are not fully set in .env")
 
 # Neo4j driver
 driver = GraphDatabase.driver(
-    os.getenv("NEO4J_URI"),
-    auth=(os.getenv("NEO4J_USER"), os.getenv("NEO4J_PASS"))
+    NEO4J_URI,
+    auth=(NEO4J_USER, NEO4J_PASS)
 )
 
 app = FastAPI()
@@ -24,7 +33,6 @@ app = FastAPI()
 # Serve frontend (React build)
 # -----------------------------
 frontend_path = os.path.join(os.path.dirname(__file__), "../frontend/build")
-
 if os.path.exists(frontend_path):
     app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
 
@@ -60,14 +68,20 @@ def root():
 
 @app.get("/api/test-supabase")
 def test_supabase():
-    data = supabase.table("publications").select("*").limit(1).execute()
-    return {"data": data.data}
+    try:
+        data = supabase.table("publications").select("*").limit(1).execute()
+        return {"data": data.data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/test-neo4j")
 def test_neo4j():
-    with driver.session() as session:
-        result = session.run("RETURN 'Hello from Neo4j!' AS msg")
-        return {"data": result.single()["msg"]}
+    try:
+        with driver.session() as session:
+            result = session.run("RETURN 'Hello from Neo4j!' AS msg")
+            return {"data": result.single()["msg"]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # -----------------------------
 # Summarize endpoint
