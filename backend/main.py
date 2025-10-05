@@ -6,6 +6,8 @@ from backend.db import supabase
 from neo4j import GraphDatabase
 from dotenv import load_dotenv
 from typing import List, Optional, Dict
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import os
 
 load_dotenv()
@@ -17,6 +19,21 @@ driver = GraphDatabase.driver(
 )
 
 app = FastAPI()
+
+# -----------------------------
+# Serve frontend (React build)
+# -----------------------------
+frontend_path = os.path.join(os.path.dirname(__file__), "../frontend/build")
+
+if os.path.exists(frontend_path):
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
+
+# -----------------------------
+# Health check
+# -----------------------------
+@app.get("/api/health")
+def health():
+    return {"status": "ok"}
 
 # -----------------------------
 # Pydantic model
@@ -37,16 +54,16 @@ class PublicationIn(BaseModel):
 # -----------------------------
 # Test endpoints
 # -----------------------------
-@app.get("/")
+@app.get("/api/")
 def root():
     return {"message": "NASA Backend operational"}
 
-@app.get("/test-supabase")
+@app.get("/api/test-supabase")
 def test_supabase():
     data = supabase.table("publications").select("*").limit(1).execute()
     return {"data": data.data}
 
-@app.get("/test-neo4j")
+@app.get("/api/test-neo4j")
 def test_neo4j():
     with driver.session() as session:
         result = session.run("RETURN 'Hello from Neo4j!' AS msg")
@@ -55,7 +72,7 @@ def test_neo4j():
 # -----------------------------
 # Summarize endpoint
 # -----------------------------
-@app.post("/summarize")
+@app.post("/api/summarize")
 def summarize_endpoint(item: Dict[str, str]):
     text = item.get("text")
     if not text:
@@ -69,7 +86,7 @@ def summarize_endpoint(item: Dict[str, str]):
 # -----------------------------
 # Ingest endpoint
 # -----------------------------
-@app.post("/ingest")
+@app.post("/api/ingest")
 def ingest(pub: PublicationIn):
     try:
         emb_vector = get_embedding(pub.abstract or pub.title or "No abstract")
